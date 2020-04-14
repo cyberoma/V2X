@@ -101,6 +101,9 @@ class TCPServer:
             return self.message
         return {}
 
+    def extract_pos(self):
+        pass
+
     def send_cmd_to_client(self, host, msg):
         # clients_dict: {'socket':'(id, host address)'}
         # host = ('id', 'host')
