@@ -4,7 +4,7 @@ import subprocess
 
 # Client for Raspberry Pi to listen all commands from Desktop and parse
 
-HOST = "192.168.178.65"  # The server's hostname or IP address
+HOST = socket.gethostname()  # "192.168.178.65"  # The server's hostname or IP address
 PORT = 65432  # The port used by the server
 HEADERSIZE = 10
 

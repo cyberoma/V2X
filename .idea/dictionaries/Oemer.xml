@@ -5,6 +5,7 @@
       <w>addr</w>
       <w>headersize</w>
       <w>lsock</w>
+      <w>plotname</w>
       <w>recv</w>
     </words>
   </dictionary>

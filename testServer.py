@@ -1,7 +1,7 @@
 import socket
 import selectors
 import sys
-import random
+from ast import literal_eval as make_tuple
 
 HEADERSIZE = 10
 
@@ -60,7 +60,7 @@ class TCPServer:
         self.clients_dict[sock] = self.client_id, addr
 
     def get_clients(self):
-        # return list of host address from clients_dict sockets
+        # return list of host address and id from clients_dict sockets
         if self.clients_dict:
             for sock in self.clients_dict:
                 # if host addr not in list
@@ -97,16 +97,28 @@ class TCPServer:
 
     def get_msg(self):
         if self.message:
-            # return f"{self.message['addr']}> {self.message['data']}"
             return self.message
         return {}
 
     def extract_pos(self):
-        pass
+        """
+
+        :return: dict with address and pos as tuple (x,y)
+        """
+        pos_dict = {}
+        # extract pos from report data -> works only if pos is the first value
+        pos_tuple = make_tuple(self.message['data'].split(';')[0].split(':')[1])
+        _, host = self.message['addr']
+        pos_dict[host] = pos_tuple
+        return pos_dict
 
     def send_cmd_to_client(self, host, msg):
+        """
+
+        :param host: host = ('id', 'host')
+        :param msg: message to send as string
+        """
         # clients_dict: {'socket':'(id, host address)'}
-        # host = ('id', 'host')
         client_id, client_host = host
         selected_host = (int(client_id), client_host)
         print("selected_host", selected_host)
@@ -126,6 +138,13 @@ class TCPServer:
             print('no socket with given host found, nothing to send!')
 
     def broadcast(self, msg, host='', to=''):
+        """
+
+        :param msg:
+        :param host:
+        :param to:
+        :return:
+        """
         try:
             # send cmd to all clients_dict
             if self.clients_dict and msg:
