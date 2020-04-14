@@ -110,6 +110,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.x_curr = 0
         self.y_curr = 0
 
+        self.pos_dict = {}
+
     # ------ Client Tab ---------
 
     def on_start_button_click(self):
@@ -173,17 +175,21 @@ class MainWindow(QtWidgets.QMainWindow):
             # add to gui list and scroll down
             self.ui.reportList.addItem(self.report)
             self.ui.reportList.scrollToBottom()
-            # check area to forward or discard data
-
+            # get host name from report
             _, host_curr = self.message['addr']
-            pos_dict = server.extract_pos()
-            x_curr, y_curr = pos_dict[host_curr]
-
+            # extract position from report
+            x_curr, y_curr = server.extract_pos()
+            # create dict for hostname and pos
+            self.pos_dict[host_curr] = (x_curr, y_curr)
+            # update plot
+            self.plot.update_plot(self.pos_dict)
+            # delete last hostname from dict to speed up the plot
+            del self.pos_dict[host_curr]
+            # check area to forward or discard data
             if stat.check_area(x_curr, y_curr):
                 # broadcast to other clients
                 server.broadcast(self.report, host=self.message['addr'])
-                print(pos_dict)
-                # self.plot.update_plot(x_curr, y_curr)
+
             else:
                 print('blocked!', (x_curr, y_curr))
 
@@ -234,7 +240,7 @@ class PlotWindow(QtWidgets.QMainWindow):
 
         self.timer = QTimer()
         self.timer.setInterval(500)
-        self.timer.timeout.connect(self.update_plot)
+        # self.timer.timeout.connect(self.update_plot)
         self.clients_list = []
 
         self.ui_plot.graphWidget.setTitle("Localization")
@@ -243,13 +249,15 @@ class PlotWindow(QtWidgets.QMainWindow):
         self.ui_plot.graphWidget.showGrid(x=True, y=True)
         self.ui_plot.graphWidget.addLegend()
 
+        # create a buffer for plotting to visualize direction
         self.y = [0] * 4  # list of zeros
         self.x = [0] * 4
+        # contain the host as key and last five pos as list -> see plot_clients() below
+        self.x_update = {}
+        self.y_update = {}
 
-        self.y2 = [0] * 4  # list of zeros
-        self.x2 = [0] * 4
-
-        self.data_line = []
+        self.data_line = {}
+        self.count = 0
 
     def plot(self, x, y, plotname, pen):
         return self.ui_plot.graphWidget.plot(x, y, name=plotname, pen=pen)
@@ -263,41 +271,40 @@ class PlotWindow(QtWidgets.QMainWindow):
         return list(d)
 
     def plot_clients(self):
-        self.clients_list = server.get_clients()
-        self.clients_list = self._filter_list(self.clients_list)
+        # initialize the plot
 
+        client_list = server.get_clients()
+        self.clients_list = client_list
+        # delete duplicates -> always two identical hosts, if report script is active
+        self.clients_list = self._filter_list(self.clients_list)
         pen_color = ['w', 'r', 'b', 'g']
+
         # create plots of the clients
         for idx, data in enumerate(self.clients_list):
-            self.data_line.append(self.plot(self.x, self.y, data, pen_color[idx]))
+            # create obj of plot in data_line. We need this to update the plot
+            self.data_line[data] = self.plot(self.x, self.y, data, pen_color[idx])
+            # host as key and last five pos as list -> see in __init__ above
+            self.x_update[data] = self.x
+            self.y_update[data] = self.y
 
-    def update_plot(self):
-        self.x = self.x[1:]  # Remove the first element.
-        self.x.append(random.randint(1, 10))  # Add a new value
+        print(self.data_line)
 
-        self.y = self.y[1:]  # Remove the first
-        self.y.append(random.randint(1, 10))  # Add a new value.
+    def update_plot(self, pos_dict):
+        if self.data_line:
+            # get host name of pos_dict
+            host = list(pos_dict.keys())[0]
+            x_curr, y_curr = pos_dict[host]
+            # create a new dict for update pos with hostname and list of last positions
+            # in every call: delete the first pos and add a new one to the end
+            self.x_update[host] = self.x_update[host][1:]  # Remove the first element.
+            self.x_update[host].append(x_curr)  # Add a new value
 
-        self.data_line[0].setData(self.x, self.y, symbol='o')  # Update the data.
-        self.data_line[0].scatter.setData(x=[self.x[-1]], y=[self.y[-1]])  # set scatter only to last element
-
-        self.x2 = self.x2[1:]  # Remove the first element.
-        self.x2.append(random.randint(10, 20))  # Add a new value
-
-        self.y2 = self.y2[1:]  # Remove the first
-        self.y2.append(random.randint(10, 20))  # Add a new value.
-
-        self.data_line[1].setData(self.x2, self.y2, symbol='o')  # Update the data.
-        self.data_line[1].scatter.setData(x=[self.x2[-1]], y=[self.y2[-1]])  # set scatter only to last element
-
-        # for d in self.data_line:
-        #     self.x = self.x[1:]  # Remove the first element.
-        #     self.x.append(random.randint(1, 10))  # Add a new value
-        #
-        #     self.y = self.y[1:]  # Remove the first
-        #     self.y.append(random.randint(1, 10))  # Add a new value.
-        #     d.setData(self.x, self.y, symbol='o', symbolSize='15')  # Update the data.
-        #     # d.scatter.setData(x=[self.x[-1]], y=[self.y[-1]])  # set scatter only to last element
+            self.y_update[host] = self.y_update[host][1:]  # Remove the first
+            self.y_update[host].append(y_curr)  # Add a new value.
+            # update the data
+            self.data_line[host].setData(self.x_update[host], self.y_update[host], symbol='o', symbolSize=15)
+            # set scatter(symbol='o') only to last element
+            self.data_line[host].scatter.setData(x=[self.x_update[host][-1]], y=[self.y_update[host][-1]])
 
     def showEvent(self, event):
         self.timer.start()

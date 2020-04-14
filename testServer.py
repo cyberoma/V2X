@@ -103,14 +103,13 @@ class TCPServer:
     def extract_pos(self):
         """
 
-        :return: dict with address and pos as tuple (x,y)
+        :return: pos as tuple (x,y)
         """
-        pos_dict = {}
+
         # extract pos from report data -> works only if pos is the first value
         pos_tuple = make_tuple(self.message['data'].split(';')[0].split(':')[1])
-        _, host = self.message['addr']
-        pos_dict[host] = pos_tuple
-        return pos_dict
+
+        return pos_tuple
 
     def send_cmd_to_client(self, host, msg):
         """
