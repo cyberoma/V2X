@@ -139,10 +139,10 @@ class TCPServer:
     def broadcast(self, msg, host='', to=''):
         """
 
-        :param msg:
-        :param host:
-        :param to:
-        :return:
+        :param msg: message as string
+        :param host: id and host from sender as tuple. Empty to send to all
+        :param to: empty or 'all' to send to all
+        :return: broadcast message
         """
         try:
             # send cmd to all clients_dict
@@ -201,6 +201,12 @@ class Statistic:
         self.discard = 0
 
     def check_area(self, curr_x, curr_y):
+        """
+
+        :param curr_x: x coordinate from pi
+        :param curr_y: y coordinate from pi
+        :return: false if block else true
+        """
         if curr_x in self.x and curr_y in self.y:
             self.discard += 1
             return False

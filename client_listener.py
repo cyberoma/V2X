@@ -1,17 +1,15 @@
 import socket
 import sys
-import subprocess
 
 # Client for Raspberry Pi to listen all commands from Desktop and parse
 
 HOST = socket.gethostname()  # "192.168.178.65"  # The server's hostname or IP address
 PORT = 65432  # The port used by the server
-HEADERSIZE = 10
+HEADERSIZE = 10  # Headersize for buffering
 
 command_word = "cmd"  # word to start receiving command.
 report_start_word = "start_report"  # word to start command.
-report_stop_word = "stop_report"
-process_id = 0
+report_stop_word = "stop_report"  # word to stop listening
 
 
 # ---- Command functions ---- #
@@ -87,13 +85,12 @@ def main():
 
         try:
             s.connect((HOST, PORT))  # connects to server
-            # start report script:
-            # subprocess.Popen(['python3', 'client_send_report.py'], stdout=subprocess.PIPE)
             while True:
-                header = s.recv(1024).decode('utf-8')
+                header = s.recv(1024).decode('utf-8')  # receive and decode from byte to string
                 # if command_word is in message -> start parsing
                 if header == command_word:
                     print("start to parse commands:")
+                    # waiting for commands
                     data = s.recv(1024)
                     parse_data(data)
                 # if server sends stop command

@@ -7,7 +7,6 @@ HEADERSIZE = 10
 
 HOST = "192.168.178.65"  # The server's hostname or IP address
 PORT = 65432  # The port used by the server
-# message = md.report()  # dict with report data
 
 
 report = Report()
@@ -28,13 +27,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
             s.send(message.encode())  # send report
             time.sleep(1)
-
+            # wait for response
             data_recv = s.recv(10)
             raw = data_recv.decode('utf-8')
             if raw == 'OK':
                 print("response: ", data_recv.decode('utf-8'))
-            elif data_recv.decode('utf-8') == 'stop_report':
-                break
             else:
                 continue
 

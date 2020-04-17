@@ -2,12 +2,10 @@ from PyQt5 import QtWidgets
 from UI.mainwindow import Ui_MainWindow
 from UI.plotwindow import Ui_PlotWindow
 
-from functools import partial
 import sys
-import random
+
 from PyQt5.QtCore import QThread, pyqtSignal, QTimer, Qt
-from testServer import TCPServer, Statistic
-from ast import literal_eval as make_tuple
+from tcp_server import TCPServer, Statistic
 
 server = TCPServer()
 
@@ -35,7 +33,7 @@ class RunServerThread(QThread):
             # get clients_dict list
             result = server.get_clients()
             if result is None:
-                # empty list
+                # return empty list
                 result = []
             # get report from client
             report = server.get_msg()
@@ -48,6 +46,7 @@ class RunServerThread(QThread):
 
     def interrupt(self):
         self._actice = False
+        # send stop msg to all clients
         server.broadcast('stop', to='all')
 
 
@@ -56,6 +55,7 @@ class RunReportThread(QThread):
     report_recv = pyqtSignal(object)
     finished = pyqtSignal()
 
+    # thread for report
     def __init__(self):
         super(RunReportThread, self).__init__()
         self._actice = True
@@ -64,7 +64,7 @@ class RunReportThread(QThread):
         while self._actice:
             server.run_server()
             self.msleep(10)  # wait 10 ms
-            # get clients_dict list -> necessary because host_list.remove function if closed
+            # get clients_dict list -> necessary because host_list.remove function will called if closed
             client_list = server.get_clients()
             # get report from client
             message = server.get_msg()
@@ -76,13 +76,13 @@ class RunReportThread(QThread):
     def interrupt(self):
         server.broadcast('stop_report', to='all')
         self._actice = False
-        self.wait()
 
 
+# Main Gui
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
-
+        # initialize gui from QT Designer
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
@@ -92,7 +92,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.report = ''
         # command to start receiving reports
         self.cmd = 'start_report'
-
+        # gui events
         self.ui.startButton.clicked.connect(self.on_start_button_click)
         self.ui.stopButton.clicked.connect(self.on_stop_button_click)
         self.ui.send_cmd_btn.clicked.connect(self.send_cmd)
@@ -104,7 +104,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.ui.stop_report_btn.setEnabled(False)
         self.ui.start_report_btn.setEnabled(False)
-
+        # plot window
         self.plot = PlotWindow(self)
 
         self.x_curr = 0
@@ -118,13 +118,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.s = RunServerThread()
         print("clicked")
         self.s.client_changed.connect(self.print_clients)
-        # self.s.msg_received.connect(self.print_msg)
         self.ui.startButton.setEnabled(False)
         self.ui.stopButton.setEnabled(True)
         self.s.finished.connect(self.thread_complete)
         self.s._actice = True
         self.ui.connect_report_btn.setEnabled(False)
-
+        # starts the server thread
         self.s.start()
 
     def on_stop_button_click(self):
@@ -143,9 +142,11 @@ class MainWindow(QtWidgets.QMainWindow):
         if new_host:
             # tuple of host and id
             client_id, client_host = new_host[0]
+            # add to gui list
             self.ui.ipList.addItem(f"{client_id}: {client_host}")
         if to_remove:
             client_id, _ = to_remove[0]
+            # delete from gui list
             self.ui.ipList.takeItem(self.ui.ipList.row(self.ui.ipList.findItems(str(client_id), Qt.MatchContains)[0]))
 
         self.host_list = client_list[:]
@@ -155,10 +156,12 @@ class MainWindow(QtWidgets.QMainWindow):
     # ------ Command Tab ---------
 
     def send_cmd(self):
+        # get selected host from list
         selected_item = self.ui.ipList.currentItem()
 
         cmd = self.ui.cmd_line.text()
         if selected_item and cmd:
+            # prepare command to send
             selected_item_tuple = tuple(selected_item.text().replace(" ", "").split(':'))
             server.send_cmd_to_client(selected_item_tuple, cmd)
             self.ui.cmd_line.setText('')  # clear textbox
@@ -194,6 +197,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 print('blocked!', (x_curr, y_curr))
 
     def connect_report(self):
+        # create instance of Report thread
         self.r = RunReportThread()
 
         self.ui.connect_report_btn.setEnabled(False)
@@ -203,25 +207,26 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.reportList.addItem('Report created!')
 
     def start_report(self):
-
+        # set while statement true to loop
         self.r._actice = True
+        # gui events
         self.r.report_recv.connect(self.print_report)
         self.r.finished.connect(self.thread_complete)
         self.ui.start_report_btn.setEnabled(False)
         self.ui.stop_report_btn.setEnabled(True)
-
+        # start report thread
         self.r.start()
 
     def stop_report(self):
         self.r.interrupt()
         self.ui.start_report_btn.setEnabled(True)
         self.ui.stop_report_btn.setEnabled(False)
-
+        # create statistic
         forward, discard = stat.get_statistic()
         self.ui.reportList.addItem(f"forward:{forward}, discard:{discard}")
 
     def plot_report(self):
-
+        # show plot window and initialize
         self.plot.show()
         self.plot.plot_clients()
 
@@ -234,12 +239,12 @@ class MainWindow(QtWidgets.QMainWindow):
 class PlotWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
-
+        # initialize Qt designer window
         self.ui_plot = Ui_PlotWindow()
         self.ui_plot.setupUi(self)
-
-        self.timer = QTimer()
-        self.timer.setInterval(500)
+        # create timer to update plot -> actually don't use
+        # self.timer = QTimer()
+        # self.timer.setInterval(500)
         # self.timer.timeout.connect(self.update_plot)
         self.clients_list = []
 
@@ -286,8 +291,6 @@ class PlotWindow(QtWidgets.QMainWindow):
             # host as key and last five pos as list -> see in __init__ above
             self.x_update[data] = self.x
             self.y_update[data] = self.y
-
-        print(self.data_line)
 
     def update_plot(self, pos_dict):
         if self.data_line:
