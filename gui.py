@@ -6,7 +6,7 @@ import sys
 
 from PyQt5.QtCore import QThread, pyqtSignal, QTimer, Qt
 from tcp_server import TCPServer, Statistic
-
+# create instance of TCP Class
 server = TCPServer()
 
 # no send area
@@ -310,10 +310,12 @@ class PlotWindow(QtWidgets.QMainWindow):
             self.data_line[host].scatter.setData(x=[self.x_update[host][-1]], y=[self.y_update[host][-1]])
 
     def showEvent(self, event):
-        self.timer.start()
+        # self.timer.start()
+        pass
 
     def closeEvent(self, event):
-        self.timer.stop()
+        # self.timer.stop()
+        pass
 
 
 app = QtWidgets.QApplication(sys.argv)
