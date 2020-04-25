@@ -6,6 +6,7 @@ import sys
 
 from PyQt5.QtCore import QThread, pyqtSignal, QTimer, Qt
 from tcp_server import TCPServer, Statistic
+
 # create instance of TCP Class
 server = TCPServer()
 
@@ -111,6 +112,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.y_curr = 0
 
         self.pos_dict = {}
+        self.old_pos = (0, 0)
 
     # ------ Client Tab ---------
 
@@ -184,8 +186,11 @@ class MainWindow(QtWidgets.QMainWindow):
             x_curr, y_curr = server.extract_pos()
             # create dict for hostname and pos
             self.pos_dict[host_curr] = (x_curr, y_curr)
-            # update plot
-            self.plot.update_plot(self.pos_dict)
+            # check pos has changed
+            if not (self.old_pos == (x_curr, y_curr)):
+                # update plot
+                self.plot.update_plot(self.pos_dict)
+                self.old_pos = (x_curr, y_curr)
             # delete last hostname from dict to speed up the plot
             del self.pos_dict[host_curr]
             # check area to forward or discard data

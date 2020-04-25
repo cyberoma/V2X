@@ -107,9 +107,10 @@ class TCPServer:
         """
 
         # extract pos from report data -> works only if pos is the first value
-        pos_tuple = make_tuple(self.message['data'].split(';')[0].split(':')[1])
-
-        return pos_tuple
+        if self.message:
+            pos_tuple = make_tuple(self.message['data'].split(';')[0].split(':')[1])
+            old_pos = pos_tuple
+            return pos_tuple
 
     def send_cmd_to_client(self, host, msg):
         """

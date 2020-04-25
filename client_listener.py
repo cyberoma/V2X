@@ -8,7 +8,6 @@ PORT = 65432  # The port used by the server
 HEADERSIZE = 10  # Headersize for buffering
 
 command_word = "cmd"  # word to start receiving command.
-report_start_word = "start_report"  # word to start command.
 report_stop_word = "stop_report"  # word to stop listening
 
 
@@ -21,11 +20,10 @@ def speed(val):
 
 def cord(cord_list):
     print(f"cord-> x:{cord_list[0]} | y:{cord_list[1]}")
-    pass
 
 
 def direction(*args):
-    pass
+    print("direction function called!", args)
 
 
 # --------------------------- #
