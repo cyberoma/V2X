@@ -49,6 +49,7 @@ class RunServerThread(QThread):
         self._actice = False
         # send stop msg to all clients
         server.broadcast('stop', to='all')
+        self.wait()
 
 
 class RunReportThread(QThread):
@@ -77,6 +78,7 @@ class RunReportThread(QThread):
     def interrupt(self):
         server.broadcast('stop_report', to='all')
         self._actice = False
+        self.wait()
 
 
 # Main Gui
@@ -189,10 +191,12 @@ class MainWindow(QtWidgets.QMainWindow):
             # check pos has changed
             if not (self.old_pos == (x_curr, y_curr)):
                 # update plot
+                print(host_curr, (x_curr, y_curr))
                 self.plot.update_plot(self.pos_dict)
                 self.old_pos = (x_curr, y_curr)
-            # delete last hostname from dict to speed up the plot
-            del self.pos_dict[host_curr]
+                # delete last hostname from dict to speed up the plot
+                del self.pos_dict[host_curr]
+
             # check area to forward or discard data
             if stat.check_area(x_curr, y_curr):
                 # broadcast to other clients
@@ -282,7 +286,6 @@ class PlotWindow(QtWidgets.QMainWindow):
 
     def plot_clients(self):
         # initialize the plot
-
         client_list = server.get_clients()
         self.clients_list = client_list
         # delete duplicates -> always two identical hosts, if report script is active

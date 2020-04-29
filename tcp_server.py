@@ -89,6 +89,8 @@ class TCPServer:
                     # return message and and host addr of sender
                     self.message = {"data": full_msg[HEADERSIZE:],
                                     "addr": self.clients_dict[key.fileobj]}
+                    # send Response to client
+                    key.fileobj.sendall(b'OK')
                     return self.message
 
         except Exception as e:
@@ -107,10 +109,13 @@ class TCPServer:
         """
 
         # extract pos from report data -> works only if pos is the first value
-        if self.message:
-            pos_tuple = make_tuple(self.message['data'].split(';')[0].split(':')[1])
-            old_pos = pos_tuple
-            return pos_tuple
+        if self.message['data']:
+            try:
+                pos_tuple = make_tuple(self.message['data'].split(';')[0].split(':')[1])
+                return pos_tuple
+            except Exception as e:
+                print(e)
+                return 0, 0
 
     def send_cmd_to_client(self, host, msg):
         """
@@ -185,8 +190,7 @@ class TCPServer:
                         del self.clients_dict[key.fileobj]
                         continue
 
-                    # send Response to client
-                    key.fileobj.sendall(b'OK')
+
 
         except Exception as e:
             print(str(e))
